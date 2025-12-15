@@ -30,7 +30,7 @@ const CreatePage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("http://localhost:5001/api/patients", formData);
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/patients`, formData);
       toast.success(`Enrolled! ID: ${formData.patientId}`, { duration: 6000 });
       navigate("/patients");
     } catch (error) {

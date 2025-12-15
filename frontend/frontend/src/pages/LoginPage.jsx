@@ -33,7 +33,7 @@ const LoginPage = () => {
       if (email !== "") { 
         try {
             // 1. CHECK DATABASE IF ID EXISTS
-            const res = await axios.get("http://localhost:5001/api/patients");
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
             const foundUser = res.data.find(p => p.patientId === email);
 
             if (foundUser) {

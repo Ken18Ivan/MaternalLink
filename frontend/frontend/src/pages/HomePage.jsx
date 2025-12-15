@@ -15,7 +15,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/patients");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
         const data = res.data;
 
         // 1. COUNT UNIQUE PATIENTS

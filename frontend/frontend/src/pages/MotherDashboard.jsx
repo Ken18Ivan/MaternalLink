@@ -25,7 +25,7 @@ const MotherDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/patients");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
         
         const myRecords = res.data
           .filter(record => record.patientId === user.name) 
@@ -102,7 +102,7 @@ const MotherDashboard = () => {
     if(!confirm("Clear all messages?")) return;
     try {
         if (messageRecordId) {
-            await axios.put(`http://localhost:5001/api/patients/${messageRecordId}/feedback`, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/patients/${messageRecordId}/feedback`, {
                 feedback: "" 
             });
             setAllMessages([]);

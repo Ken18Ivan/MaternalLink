@@ -25,7 +25,7 @@ const PatientsPage = () => {
 
   const fetchPatients = async () => {
     try {
-      const response = await axios.get("http://localhost:5001/api/patients");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
       const data = response.data;
       const sortedData = data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
       setAllLogs(sortedData);
@@ -126,7 +126,7 @@ const PatientsPage = () => {
   const handleFinishAppointment = async () => {
      if(!confirm("Mark this appointment as completed?")) return;
      try {
-        await axios.put(`http://localhost:5001/api/patients/${selectedPatient._id}/feedback`, {
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/patients/${selectedPatient._id}/feedback`, {
             nextCheckup: null 
         });
         const updatedPatient = {...selectedPatient, nextCheckup: null};
@@ -153,7 +153,7 @@ const PatientsPage = () => {
     e.preventDefault();
     if(!feedback) return;
     try {
-      await axios.put(`http://localhost:5001/api/patients/${selectedPatient._id}/feedback`, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/patients/${selectedPatient._id}/feedback`, {
         feedback: feedback,
         nextCheckup: appointDate 
       });
@@ -170,7 +170,7 @@ const PatientsPage = () => {
   const handleDelete = async (id) => {
     if(!window.confirm("CONFIRM: Delete this record?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/patients/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/patients/${id}`);
       fetchPatients();
       toast.success("Record removed.");
     } catch (error) { toast.error("Error deleting"); }

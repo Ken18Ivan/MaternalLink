@@ -39,7 +39,7 @@ const CheckupLogsPage = () => {
 
   const fetchLogs = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/patients");
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
       // Sort newest first
       const sorted = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setLogs(sorted);

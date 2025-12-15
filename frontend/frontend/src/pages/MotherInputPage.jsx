@@ -16,7 +16,7 @@ const MotherInputPage = () => {
   useEffect(() => {
     const fetchIdentity = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/patients");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
         // Find existing record for this ID to get the Real Name
         const myProfile = res.data.find(r => r.patientId === user.name);
         if (myProfile) {
@@ -52,7 +52,7 @@ const MotherInputPage = () => {
         pregnancyWeeks: weeks // Pass existing weeks so it doesn't get lost
       };
       
-      await axios.post("http://localhost:5001/api/patients", dataToSend);
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/patients`, dataToSend);
       toast.success("Vitals Sent Successfully!");
       navigate("/mother");
     } catch (error) {
