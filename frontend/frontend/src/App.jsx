@@ -1,116 +1,69 @@
 import { Routes, Route } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-
-// --- CONTEXT & SECURITY ---
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { Toaster } from "react-hot-toast";
+import CheckupLogsPage from "./pages/CheckupLogsPage";
 
-// --- LAYOUT COMPONENTS ---
+// Pages
+import LoginPage from "./pages/LoginPage";
+import HomePage from "./pages/HomePage";
+import PatientsPage from "./pages/PatientsPage";
+import CreatePage from "./pages/CreatePage";
+import MotherDashboard from "./pages/MotherDashboard";
+import MotherInputPage from "./pages/MotherInputPage";
+import MotherSettingsPage from "./pages/MotherSettingsPage"; // 1. IMPORT THIS
+
+// Components
 import Sidebar from "./components/Sidebar";
-import GovBanner from "./components/GovBanner";
-import GovFooter from "./components/GovFooter";
+import GovFooter from "./components/GovFooter"; 
+import MotherLayout from "./layouts/MotherLayout";
 
-// --- PAGES ---
-import HomePage from "./pages/HomePage";       // The Dashboard (Cards)
-import PatientsPage from "./pages/PatientsPage"; // The Registry (Table)
-import CreatePage from "./pages/CreatePage";   // The Input Form
-import LoginPage from "./pages/LoginPage";     // The Login Screen
-
-// --- DASHBOARD LAYOUT (The "Government Shell") ---
-// This wraps all pages EXCEPT Login.
+// Admin Layout Wrapper
 const DashboardLayout = ({ children }) => {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 font-sans text-gray-900">
-      
-      {/* 1. Official Top Banner (GOV.PH) */}
-      <GovBanner />
-
-      <div className="flex flex-1 relative">
-        
-        {/* 2. Fixed Sidebar */}
-        <Sidebar />
-
-        {/* 3. Main Content Area */}
-        {/* ml-64 pushes content right to not hide behind sidebar */}
-        <main className="flex-1 ml-64 p-8 min-h-[85vh]">
-          
-          {/* Internal Header Strip (Barangay Branding) */}
+    <div className="flex min-h-screen bg-gray-50 font-sans text-gray-900">
+      <Sidebar />
+      <div className="flex-1 ml-64 flex flex-col relative">
+        <main className="flex-1 p-8 pb-20">
           <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">Barangay Poblacion</h1>
+              <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">Barangay Pugaan</h1>
               <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                Health Center System • Region X
-              </p>
-            </div>
-            
-            {/* Quick Actions / Date */}
-            <div className="flex flex-col items-end">
-              <p className="text-sm font-bold text-gray-700">Dr. Natasha Atokolo</p>
-              <p className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                ● ACTIVE SESSION
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                Health Center System • LGU Iligan
               </p>
             </div>
           </div>
-
-          {/* The Page Content Renders Here */}
           {children}
-
         </main>
-      </div>
-
-      {/* 4. Official Footer (Pushed right) */}
-      <div className="ml-64">
         <GovFooter />
       </div>
     </div>
   );
 };
 
-// --- MAIN APP COMPONENT ---
 function App() {
   return (
     <AuthProvider>
-      <div className="font-sans antialiased text-gray-900 bg-gray-50">
-        <Routes>
-          
-          {/* PUBLIC ROUTE: Login (No Sidebar/Footer) */}
-          <Route path="/login" element={<LoginPage />} />
+      <Toaster position="top-center" reverseOrder={false} />
+      
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        
+        {/* ADMIN ROUTES */}
+        <Route path="/" element={<ProtectedRoute><DashboardLayout><HomePage /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/patients" element={<ProtectedRoute><DashboardLayout><PatientsPage /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/create" element={<ProtectedRoute><DashboardLayout><CreatePage /></DashboardLayout></ProtectedRoute>} />
+        
+        {/* 2. Add This Route */}
+        <Route path="/logs" element={<ProtectedRoute><DashboardLayout><CheckupLogsPage /></DashboardLayout></ProtectedRoute>} />
 
-          {/* PROTECTED ROUTES (Requires Login) */}
-          
-          {/* 1. Dashboard */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <HomePage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
+        {/* MOTHER ROUTES */}
+        <Route path="/mother" element={<ProtectedRoute><MotherLayout><MotherDashboard /></MotherLayout></ProtectedRoute>} />
+        <Route path="/mother/input" element={<ProtectedRoute><MotherLayout><MotherInputPage /></MotherLayout></ProtectedRoute>} />
+        <Route path="/mother/settings" element={<ProtectedRoute><MotherLayout><MotherSettingsPage /></MotherLayout></ProtectedRoute>} />
 
-          {/* 2. Patient Registry (Table) */}
-          <Route path="/patients" element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <PatientsPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-
-          {/* 3. Add New Record (Form) */}
-          <Route path="/create" element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <CreatePage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-
-        </Routes>
-
-        {/* Notification Popups */}
-        <Toaster position="top-right" reverseOrder={false} />
-      </div>
+      </Routes>
     </AuthProvider>
   );
 }
