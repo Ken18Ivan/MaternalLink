@@ -13,7 +13,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "https://maternallink.onrender.com",
-    "https://maternal-link.vercel.app/" 
+    "https://maternal-link.vercel.app/"
   ],
   credentials: true
 }));
