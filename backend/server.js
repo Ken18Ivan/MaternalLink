@@ -9,7 +9,14 @@ import patientRoutes from "./routes/patientRoutes.js"; // Note: .js extension is
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://maternallink.onrender.com",
+    "https://maternal-link.vercel.app/" 
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Database Connection
