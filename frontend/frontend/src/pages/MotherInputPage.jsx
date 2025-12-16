@@ -19,26 +19,26 @@ const MotherInputPage = () => {
     notes: ""
   });
 
-  // --- VALIDATION (The "Safety Guard" I added) ---
+  // --- VALIDATION ---
   const validateInputs = () => {
     const { bloodPressure, weight, temperature, heartRate } = formData;
 
     // 1. BP Check
     const bpRegex = /^\d{2,3}\/\d{2,3}$/;
-    if (!bpRegex.test(bloodPressure)) {
+    if (!bpRegex.test(bloodPressure) && bloodPressure !== "") {
       toast.error("BP format must be '120/80'");
       return false;
     }
 
-    // 2. Number Checks (Prevent huge/impossible numbers)
+    // 2. Number Checks
     const w = parseFloat(weight);
-    if (isNaN(w) || w < 30 || w > 300) { toast.error("Invalid Weight (30-300kg)"); return false; }
+    if (weight && (isNaN(w) || w < 30 || w > 300)) { toast.error("Invalid Weight"); return false; }
 
     const t = parseFloat(temperature);
-    if (isNaN(t) || t < 30 || t > 45) { toast.error("Invalid Temp (30-45°C)"); return false; }
+    if (temperature && (isNaN(t) || t < 30 || t > 45)) { toast.error("Invalid Temp"); return false; }
 
     const hr = parseFloat(heartRate);
-    if (isNaN(hr) || hr < 30 || hr > 250) { toast.error("Invalid Heart Rate"); return false; }
+    if (heartRate && (isNaN(hr) || hr < 30 || hr > 250)) { toast.error("Invalid Heart Rate"); return false; }
 
     return true;
   };
@@ -46,7 +46,6 @@ const MotherInputPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Check validation before saving
     if (!validateInputs()) return;
 
     setLoading(true);
@@ -59,7 +58,7 @@ const MotherInputPage = () => {
         temperature: Number(formData.temperature),
         heartRate: Number(formData.heartRate),
         notes: formData.notes,
-        isSelfReport: true, // Mark as self-report
+        isSelfReport: true, 
       };
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -79,13 +78,11 @@ const MotherInputPage = () => {
   };
 
   return (
-    // Note: I removed <MotherLayout> to prevent the double-footer bug.
-    // The design inside (bg-gray-50, padding, etc.) remains identical.
-    <div className="pb-24 bg-gray-50 min-h-screen p-6">
+    <div className="pb-24 bg-gray-50 min-h-screen p-6 font-sans">
       
       {/* HEADER */}
       <div className="flex items-center gap-4 mb-8 pt-4">
-        <button onClick={() => navigate(-1)} className="bg-white p-2 rounded-full shadow-sm">
+        <button onClick={() => navigate(-1)} className="bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition">
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
         <h1 className="text-2xl font-black text-gray-800 uppercase tracking-tight">Log Vitals</h1>
@@ -93,17 +90,16 @@ const MotherInputPage = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* 1. BLOOD PRESSURE CARD (Red UI Preserved) */}
+        {/* 1. BLOOD PRESSURE CARD */}
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
                 <div className="bg-red-100 p-2 rounded-full"><Activity className="w-5 h-5 text-red-500" /></div>
                 <label className="font-bold text-gray-700 uppercase text-xs tracking-widest">Blood Pressure</label>
             </div>
-            {/* Big Input Preserved */}
             <input 
                 type="text" 
                 placeholder="e.g. 120/80" 
-                className="w-full text-3xl font-black text-gray-800 placeholder:text-gray-200 outline-none"
+                className="w-full text-4xl font-black text-gray-800 placeholder:text-gray-200 outline-none bg-transparent"
                 value={formData.bloodPressure}
                 onChange={e => setFormData({...formData, bloodPressure: e.target.value})}
             />
@@ -111,7 +107,7 @@ const MotherInputPage = () => {
 
         {/* 2. GRID FOR WEIGHT & HEART RATE */}
         <div className="grid grid-cols-2 gap-4">
-            {/* Weight (Blue UI Preserved) */}
+            {/* Weight */}
             <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
                 <div className="flex items-center gap-2 mb-2">
                     <Weight className="w-4 h-4 text-blue-500" />
@@ -120,13 +116,13 @@ const MotherInputPage = () => {
                 <input 
                     type="number" 
                     placeholder="65" 
-                    className="w-full text-2xl font-black text-gray-800 placeholder:text-gray-200 outline-none"
+                    className="w-full text-3xl font-black text-gray-800 placeholder:text-gray-200 outline-none bg-transparent"
                     value={formData.weight}
                     onChange={e => setFormData({...formData, weight: e.target.value})}
                 />
             </div>
 
-            {/* Heart Rate (Rose UI Preserved) */}
+            {/* Heart Rate */}
             <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
                 <div className="flex items-center gap-2 mb-2">
                     <Heart className="w-4 h-4 text-rose-500" />
@@ -135,14 +131,14 @@ const MotherInputPage = () => {
                 <input 
                     type="number" 
                     placeholder="80" 
-                    className="w-full text-2xl font-black text-gray-800 placeholder:text-gray-200 outline-none"
+                    className="w-full text-3xl font-black text-gray-800 placeholder:text-gray-200 outline-none bg-transparent"
                     value={formData.heartRate}
                     onChange={e => setFormData({...formData, heartRate: e.target.value})}
                 />
             </div>
         </div>
 
-        {/* 3. TEMPERATURE CARD (Orange UI Preserved) */}
+        {/* 3. TEMPERATURE CARD */}
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -152,7 +148,7 @@ const MotherInputPage = () => {
                 <input 
                     type="number" 
                     placeholder="36.5" 
-                    className="w-full text-2xl font-black text-gray-800 placeholder:text-gray-200 outline-none"
+                    className="w-full text-3xl font-black text-gray-800 placeholder:text-gray-200 outline-none bg-transparent"
                     value={formData.temperature}
                     onChange={e => setFormData({...formData, temperature: e.target.value})}
                 />
@@ -161,16 +157,16 @@ const MotherInputPage = () => {
 
         {/* 4. NOTES TEXTAREA */}
         <textarea 
-            className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 resize-none h-32 text-sm font-medium"
+            className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 resize-none h-32 text-sm font-medium outline-none"
             placeholder="Any other feelings? (Headache, dizziness, etc.)"
             value={formData.notes}
             onChange={e => setFormData({...formData, notes: e.target.value})}
         ></textarea>
 
-        {/* 5. SUBMIT BUTTON (Blue Shadow UI Preserved) */}
+        {/* 5. SUBMIT BUTTON */}
         <button 
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-[2rem] font-bold uppercase tracking-widest shadow-lg shadow-blue-200 flex items-center justify-center gap-3 transition-transform active:scale-95"
+            className="w-full bg-gray-900 hover:bg-black text-white p-5 rounded-[2rem] font-bold uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all active:scale-95"
         >
             {loading ? "Saving..." : <><Save className="w-5 h-5" /> Save Vitals</>}
         </button>

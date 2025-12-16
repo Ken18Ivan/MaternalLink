@@ -1,5 +1,5 @@
-import { Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { Routes, Route, Navigate } from "react-router-dom"; // Added Navigate
+import { AuthProvider, useAuth } from "./context/AuthContext"; // Added useAuth
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "react-hot-toast";
 import CheckupLogsPage from "./pages/CheckupLogsPage";
@@ -11,12 +11,23 @@ import PatientsPage from "./pages/PatientsPage";
 import CreatePage from "./pages/CreatePage";
 import MotherDashboard from "./pages/MotherDashboard";
 import MotherInputPage from "./pages/MotherInputPage";
-import MotherSettingsPage from "./pages/MotherSettingsPage"; // 1. IMPORT THIS
+import MotherSettingsPage from "./pages/MotherSettingsPage";
 
 // Components
 import Sidebar from "./components/Sidebar";
 import GovFooter from "./components/GovFooter"; 
 import MotherLayout from "./layouts/MotherLayout";
+
+// --- NEW COMPONENT: PUBLIC ROUTE ---
+// If user is already logged in, redirect them to Dashboard immediately.
+const PublicRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (user) {
+    // CHANGE THIS to "/admin" if you want admins to go there by default
+    return <Navigate to="/mother" replace />;
+  }
+  return children;
+};
 
 // Admin Layout Wrapper
 const DashboardLayout = ({ children }) => {
@@ -48,17 +59,26 @@ function App() {
       <Toaster position="top-center" reverseOrder={false} />
       
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        {/* --- 1. ROOT PATH IS NOW LOGIN --- */}
+        <Route path="/" element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        } />
         
-        {/* ADMIN ROUTES */}
-        <Route path="/" element={<ProtectedRoute><DashboardLayout><HomePage /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/login" element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        } />
+        
+        {/* --- ADMIN ROUTES (Moved Home to /admin) --- */}
+        <Route path="/admin" element={<ProtectedRoute><DashboardLayout><HomePage /></DashboardLayout></ProtectedRoute>} />
         <Route path="/patients" element={<ProtectedRoute><DashboardLayout><PatientsPage /></DashboardLayout></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><DashboardLayout><CreatePage /></DashboardLayout></ProtectedRoute>} />
-        
-        {/* 2. Add This Route */}
         <Route path="/logs" element={<ProtectedRoute><DashboardLayout><CheckupLogsPage /></DashboardLayout></ProtectedRoute>} />
 
-        {/* MOTHER ROUTES */}
+        {/* --- MOTHER ROUTES --- */}
         <Route path="/mother" element={<ProtectedRoute><MotherLayout><MotherDashboard /></MotherLayout></ProtectedRoute>} />
         <Route path="/mother/input" element={<ProtectedRoute><MotherLayout><MotherInputPage /></MotherLayout></ProtectedRoute>} />
         <Route path="/mother/settings" element={<ProtectedRoute><MotherLayout><MotherSettingsPage /></MotherLayout></ProtectedRoute>} />
