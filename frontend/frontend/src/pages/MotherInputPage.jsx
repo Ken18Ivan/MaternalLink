@@ -72,7 +72,7 @@ const MotherInputPage = () => {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/patients`, payload, config);
 
       toast.success("Vitals Saved Successfully!");
-      navigate("/dashboard");
+      navigate("/mother");
 
     } catch (error) {
       console.error(error);
