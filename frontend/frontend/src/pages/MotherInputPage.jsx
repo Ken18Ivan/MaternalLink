@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Save, Activity, ArrowLeft, Thermometer, Heart, Weight } from "lucide-react";
+import { Save, Activity, ArrowLeft, Thermometer, Heart, Weight, Calendar } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 
@@ -10,8 +10,9 @@ const MotherInputPage = () => {
   const { user, token } = useAuth();
   const [loading, setLoading] = useState(false);
   
-  // State for all inputs
+  // 1. ADDED pregnancyWeeks to state
   const [formData, setFormData] = useState({
+    pregnancyWeeks: "", // <--- FIXED: Added this
     bloodPressure: "",
     weight: "",
     temperature: "",
@@ -19,18 +20,21 @@ const MotherInputPage = () => {
     notes: ""
   });
 
-  // --- VALIDATION ---
   const validateInputs = () => {
-    const { bloodPressure, weight, temperature, heartRate } = formData;
+    const { bloodPressure, weight, temperature, heartRate, pregnancyWeeks } = formData;
 
-    // 1. BP Check
+    // 2. ADDED Validation for Weeks
+    if (!pregnancyWeeks) {
+        toast.error("Please enter Pregnancy Weeks");
+        return false;
+    }
+
     const bpRegex = /^\d{2,3}\/\d{2,3}$/;
     if (!bpRegex.test(bloodPressure) && bloodPressure !== "") {
       toast.error("BP format must be '120/80'");
       return false;
     }
 
-    // 2. Number Checks
     const w = parseFloat(weight);
     if (weight && (isNaN(w) || w < 30 || w > 300)) { toast.error("Invalid Weight"); return false; }
 
@@ -53,6 +57,8 @@ const MotherInputPage = () => {
       const payload = {
         patientId: user.name, 
         name: user.realName || "Mother", 
+        // 3. ADDED pregnancyWeeks to payload (This fixes the error)
+        pregnancyWeeks: Number(formData.pregnancyWeeks), 
         bloodPressure: formData.bloodPressure,
         weight: Number(formData.weight),
         temperature: Number(formData.temperature),
@@ -90,7 +96,25 @@ const MotherInputPage = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* 1. BLOOD PRESSURE CARD */}
+        {/* --- NEW: PREGNANCY WEEKS CARD --- */}
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+            <div className="flex items-center gap-3 mb-4">
+                <div className="bg-pink-100 p-2 rounded-full">
+                    <Calendar className="w-5 h-5 text-pink-500" />
+                </div>
+                <label className="font-bold text-gray-700 uppercase text-xs tracking-widest">Pregnancy Weeks</label>
+            </div>
+            <input 
+                type="number" 
+                placeholder="e.g. 24" 
+                className="w-full text-4xl font-black text-gray-800 placeholder:text-gray-200 outline-none bg-transparent"
+                value={formData.pregnancyWeeks}
+                onChange={e => setFormData({...formData, pregnancyWeeks: e.target.value})}
+                required
+            />
+        </div>
+
+        {/* BLOOD PRESSURE CARD */}
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
                 <div className="bg-red-100 p-2 rounded-full"><Activity className="w-5 h-5 text-red-500" /></div>
@@ -105,7 +129,7 @@ const MotherInputPage = () => {
             />
         </div>
 
-        {/* 2. GRID FOR WEIGHT & HEART RATE */}
+        {/* GRID FOR WEIGHT & HEART RATE */}
         <div className="grid grid-cols-2 gap-4">
             {/* Weight */}
             <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
@@ -138,7 +162,7 @@ const MotherInputPage = () => {
             </div>
         </div>
 
-        {/* 3. TEMPERATURE CARD */}
+        {/* TEMPERATURE CARD */}
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -155,7 +179,7 @@ const MotherInputPage = () => {
             </div>
         </div>
 
-        {/* 4. NOTES TEXTAREA */}
+        {/* NOTES TEXTAREA */}
         <textarea 
             className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 resize-none h-32 text-sm font-medium outline-none"
             placeholder="Any other feelings? (Headache, dizziness, etc.)"
@@ -163,7 +187,7 @@ const MotherInputPage = () => {
             onChange={e => setFormData({...formData, notes: e.target.value})}
         ></textarea>
 
-        {/* 5. SUBMIT BUTTON */}
+        {/* SUBMIT BUTTON */}
         <button 
             disabled={loading}
             className="w-full bg-gray-900 hover:bg-black text-white p-5 rounded-[2rem] font-bold uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all active:scale-95"
