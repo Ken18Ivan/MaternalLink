@@ -40,28 +40,41 @@ const PatientsPage = () => {
 
   useEffect(() => { fetchPatients(); }, []);
 
-  const fetchPatients = async () => {
+ const fetchPatients = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
       const data = response.data;
+      
+      // 1. Sort Data
       const sortedData = data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
       setAllLogs(sortedData);
+      
+      // 2. Pre-calculate log counts (Fast!)
+      const logCounts = {};
+      sortedData.forEach(log => {
+          const key = log.patientId || log.name;
+          logCounts[key] = (logCounts[key] || 0) + 1;
+      });
 
+      // 3. Create Unique Map using the pre-calculated counts
       const uniqueMap = new Map();
       sortedData.forEach(item => {
         const key = item.patientId || item.name; 
         if(!uniqueMap.has(key)) {
           uniqueMap.set(key, {
             ...item,
-            totalLogs: sortedData.filter(r => (r.patientId === item.patientId) || (r.name === item.name)).length
+            // Look up the count instantly instead of filtering again
+            totalLogs: logCounts[key] 
           });
         }
       });
+      
+      // --- OPTIMIZATION END ---
+
       setPatients(Array.from(uniqueMap.values()));
       setLoading(false);
     } catch (error) { setLoading(false); }
   };
-
   const handleViewPatient = (patient) => {
     const history = allLogs.filter(log => 
       (patient.patientId && log.patientId === patient.patientId) || 
@@ -245,7 +258,7 @@ const PatientsPage = () => {
                     <div className="badge badge-lg bg-pink-50 text-pink-600 border-pink-100 font-black">{patient.pregnancyWeeks} Weeks</div>
                   </td>
                   <td className="py-6">
-                     <span className={`badge border-none font-bold text-[10px] uppercase p-3 ${patient.status === 'For Referral' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{patient.status}</span>
+                      <span className={`badge border-none font-bold text-[10px] uppercase p-3 ${patient.status === 'For Referral' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{patient.status}</span>
                   </td>
                   <td className="pr-8 py-6 text-right">
                     <button onClick={() => handleViewPatient(patient)} className="btn btn-sm bg-blue-50 text-blue-600 border-none mr-2"><Eye className="w-4 h-4" /></button>
@@ -275,11 +288,11 @@ const PatientsPage = () => {
             <div className="p-6 overflow-y-auto">
               {/* --- FIXED CLINIC VISIT FORM (WHITE INPUTS) --- */}
               <div className="mb-6">
-                 {!showClinicForm ? (
+                  {!showClinicForm ? (
                     <button onClick={() => setShowClinicForm(true)} className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold uppercase text-xs flex items-center justify-center gap-2 hover:bg-black">
                         <PlusCircle className="w-4 h-4"/> Add Clinic Visit Data
                     </button>
-                 ) : (
+                  ) : (
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 animate-in fade-in zoom-in">
                         <div className="flex justify-between items-center mb-3">
                             <h3 className="font-bold text-gray-700">New Clinic Visit</h3>
@@ -315,10 +328,10 @@ const PatientsPage = () => {
                             <button type="submit" className="btn btn-sm btn-neutral w-full">Save Record</button>
                         </form>
                     </div>
-                 )}
+                  )}
               </div>
 
-              {/* APPOINTMENT & HISTORY SECTIONS (Shortened for brevity, logic remains same) */}
+              {/* APPOINTMENT & HISTORY SECTIONS */}
               <div className="bg-blue-50 border-2 border-blue-100 p-5 rounded-2xl mb-8">
                 <h3 className="text-sm font-black text-blue-800 uppercase mb-4 flex gap-2"><Calendar className="w-5 h-5" /> Appointment</h3>
                 {selectedPatient.nextCheckup ? (
@@ -327,10 +340,31 @@ const PatientsPage = () => {
                       <button onClick={handleFinishAppointment} className="w-full mt-3 py-2 bg-green-500 text-white rounded-lg font-bold text-xs">Mark Completed</button>
                    </div>
                 ) : (
-                   <div className="bg-white p-4 rounded-xl border border-blue-200 space-y-2">
-                      <input type="date" className="input input-sm w-full bg-white border-gray-300 text-black" value={appointDate} onChange={e => setAppointDate(e.target.value)} />
-                      <input type="time" className="input input-sm w-full bg-white border-gray-300 text-black" value={appointTime} onChange={e => setAppointTime(e.target.value)} />
-                      <button onClick={addAppointment} className="btn btn-sm w-full bg-blue-100 text-blue-700 border-none">+ Add to Msg</button>
+                   <div className="bg-white p-4 rounded-xl border border-blue-200 space-y-3">
+                      
+                      {/* FIXED DATE INPUT */}
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-700 pointer-events-none" />
+                        <input 
+                            type="date" 
+                            className="input input-sm w-full pl-10 bg-white border-gray-300 text-gray-900 font-bold focus:border-blue-500" 
+                            value={appointDate} 
+                            onChange={e => setAppointDate(e.target.value)} 
+                        />
+                      </div>
+
+                      {/* FIXED TIME INPUT */}
+                      <div className="relative">
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-700 pointer-events-none" />
+                        <input 
+                            type="time" 
+                            className="input input-sm w-full pl-10 bg-white border-gray-300 text-gray-900 font-bold focus:border-blue-500" 
+                            value={appointTime} 
+                            onChange={e => setAppointTime(e.target.value)} 
+                        />
+                      </div>
+
+                      <button onClick={addAppointment} className="btn btn-sm w-full bg-blue-100 text-blue-700 border-none font-bold uppercase text-[10px] tracking-wide">+ Add to Msg</button>
                    </div>
                 )}
                 <div className="mt-4 pt-4 border-t border-blue-100">
@@ -347,8 +381,8 @@ const PatientsPage = () => {
                 {patientHistory.map((log) => (
                   <div key={log._id} className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex justify-between items-center">
                     <div>
-                       <p className="text-xs font-bold text-gray-700">{new Date(log.createdAt).toLocaleString()}</p>
-                       <p className="text-[10px] text-gray-500">"{log.notes || "-"}"</p>
+                        <p className="text-xs font-bold text-gray-700">{new Date(log.createdAt).toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-500">"{log.notes || "-"}"</p>
                     </div>
                     <div className="text-right">
                       <p className="font-black text-gray-800 text-lg">{log.bloodPressure}</p>
