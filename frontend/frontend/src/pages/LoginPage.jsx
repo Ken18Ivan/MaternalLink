@@ -2,14 +2,14 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail, User, ArrowLeft, Heart, Activity } from "lucide-react";
-import axios from "axios"; // IMPORT AXIOS
+import axios from "axios"; 
 import toast from "react-hot-toast";
 
 const LoginPage = () => {
   const [role, setRole] = useState(null);
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false); // New loading state
+  const [loading, setLoading] = useState(false); 
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -17,7 +17,7 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
     
-    // WORKER LOGIN
+    // --- WORKER LOGIN ---
     if (role === 'worker') {
       if (email === "midwife@doh.gov.ph" && password === "admin123") {
         login({ name: "Midwife Maria", role: "admin" });
@@ -28,25 +28,34 @@ const LoginPage = () => {
       }
       setLoading(false);
     } 
-    // MOTHER LOGIN (SECURE CHECK)
+    // --- MOTHER LOGIN (OPTIMIZED) ---
     else if (role === 'patient') {
       if (email !== "") { 
         try {
-            // 1. CHECK DATABASE IF ID EXISTS
+            // Toast to explain slowness (Cold Start)
+            toast.loading("Connecting to Database...", { duration: 2000 });
+            
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
-            const foundUser = res.data.find(p => p.patientId === email);
+            
+            // CLEAN THE INPUT (Remove spaces)
+            const cleanId = email.trim();
+            
+            // ROBUST SEARCH
+            const foundUser = res.data.find(p => p.patientId && p.patientId.trim() === cleanId);
 
             if (foundUser) {
-                // 2. ID FOUND -> LOGIN
-                login({ name: email, role: "patient" });
+                login({ name: foundUser.patientId, role: "patient" });
                 navigate("/mother"); 
-                toast.success(`Welcome back, Mommy ${foundUser.name}!`);
+                toast.dismiss();
+                toast.success(`Welcome back, Mommy ${foundUser.name.split(' ')[0]}!`);
             } else {
-                // 3. ID NOT FOUND -> REJECT
-                toast.error("Access Denied: ID not found in database.");
+                toast.dismiss();
+                toast.error("ID not found. Please ask Admin to Enroll you.");
             }
         } catch (error) {
-            toast.error("Connection Error. Please try again.");
+            toast.dismiss();
+            console.error(error);
+            toast.error("Server is waking up. Please try again in 30 seconds.");
         }
       } else {
         toast.error("Please enter your Patient ID");
@@ -55,6 +64,7 @@ const LoginPage = () => {
     }
   };
 
+  // ... (The rest of the UI code stays exactly the same as you provided) ...
   if (!role) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row items-center justify-center p-6 gap-8">
