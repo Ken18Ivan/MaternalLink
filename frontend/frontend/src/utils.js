@@ -10,7 +10,6 @@ export const formatDate = (isoString) => {
     minute: '2-digit',
   });
 };
-
 // Helper to check if a value is within normal BP range (Optional helper for your graph later)
 export const isBpNormal = (systolic, diastolic) => {
   return systolic < 120 && diastolic < 80;

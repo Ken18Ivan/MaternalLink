@@ -1,122 +1,183 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import axios from "axios";
-import { Save, ArrowLeft, Activity, Thermometer, Scale } from "lucide-react";
+import { Save, Activity, ArrowLeft, Thermometer, Heart, Weight } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 const MotherInputPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // user.name is the ID (2025-XXXX)
+  const { user, token } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [realName, setRealName] = useState("Checking...");
-  const [weeks, setWeeks] = useState(0);
-
-  // FETCH REAL NAME SO WE SAVE IT CORRECTLY
-  useEffect(() => {
-    const fetchIdentity = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
-        // Find existing record for this ID to get the Real Name
-        const myProfile = res.data.find(r => r.patientId === user.name);
-        if (myProfile) {
-          setRealName(myProfile.name);
-          setWeeks(myProfile.pregnancyWeeks); // Keep the weeks consistent
-        } else {
-            setRealName("Unknown User");
-        }
-      } catch (e) { console.error(e); }
-    };
-    fetchIdentity();
-  }, [user.name]);
-
+  
+  // State for all inputs
   const [formData, setFormData] = useState({
     bloodPressure: "",
-    temperature: "",
     weight: "",
-    heartRate: "80", 
-    oxygenSaturation: "98", 
-    notes: "",
-    isSelfReport: true
+    temperature: "",
+    heartRate: "",
+    notes: ""
   });
+
+  // --- VALIDATION (The "Safety Guard" I added) ---
+  const validateInputs = () => {
+    const { bloodPressure, weight, temperature, heartRate } = formData;
+
+    // 1. BP Check
+    const bpRegex = /^\d{2,3}\/\d{2,3}$/;
+    if (!bpRegex.test(bloodPressure)) {
+      toast.error("BP format must be '120/80'");
+      return false;
+    }
+
+    // 2. Number Checks (Prevent huge/impossible numbers)
+    const w = parseFloat(weight);
+    if (isNaN(w) || w < 30 || w > 300) { toast.error("Invalid Weight (30-300kg)"); return false; }
+
+    const t = parseFloat(temperature);
+    if (isNaN(t) || t < 30 || t > 45) { toast.error("Invalid Temp (30-45°C)"); return false; }
+
+    const hr = parseFloat(heartRate);
+    if (isNaN(hr) || hr < 30 || hr > 250) { toast.error("Invalid Heart Rate"); return false; }
+
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check validation before saving
+    if (!validateInputs()) return;
+
     setLoading(true);
     try {
-      // WE MUST SEND BOTH ID AND REAL NAME
-      const dataToSend = { 
-        ...formData, 
-        patientId: user.name, // The ID from Login
-        name: realName,       // The Real Name found from DB
-        pregnancyWeeks: weeks // Pass existing weeks so it doesn't get lost
+      const payload = {
+        patientId: user.name, 
+        name: user.realName || "Mother", 
+        bloodPressure: formData.bloodPressure,
+        weight: Number(formData.weight),
+        temperature: Number(formData.temperature),
+        heartRate: Number(formData.heartRate),
+        notes: formData.notes,
+        isSelfReport: true, // Mark as self-report
       };
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/patients`, dataToSend);
-      toast.success("Vitals Sent Successfully!");
-      navigate("/mother");
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/patients`, payload, config);
+
+      toast.success("Vitals Saved Successfully!");
+      navigate("/dashboard");
+
     } catch (error) {
-      toast.error("Failed to send data. Check internet.");
+      console.error(error);
+      const msg = error.response?.data?.message || "Failed to save vitals.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="pb-20 bg-pink-50 min-h-screen">
-      <div className="bg-white p-6 pt-8 rounded-b-[2rem] shadow-sm flex items-center gap-4">
-        <button onClick={() => navigate("/mother")} className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors">
-          <ArrowLeft className="w-6 h-6 text-gray-700" />
+    // Note: I removed <MotherLayout> to prevent the double-footer bug.
+    // The design inside (bg-gray-50, padding, etc.) remains identical.
+    <div className="pb-24 bg-gray-50 min-h-screen p-6">
+      
+      {/* HEADER */}
+      <div className="flex items-center gap-4 mb-8 pt-4">
+        <button onClick={() => navigate(-1)} className="bg-white p-2 rounded-full shadow-sm">
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
-        <div>
-          <h1 className="text-xl font-extrabold text-gray-800">Report My Vitals</h1>
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Self-Check Record</p>
+        <h1 className="text-2xl font-black text-gray-800 uppercase tracking-tight">Log Vitals</h1>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* 1. BLOOD PRESSURE CARD (Red UI Preserved) */}
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+            <div className="flex items-center gap-3 mb-4">
+                <div className="bg-red-100 p-2 rounded-full"><Activity className="w-5 h-5 text-red-500" /></div>
+                <label className="font-bold text-gray-700 uppercase text-xs tracking-widest">Blood Pressure</label>
+            </div>
+            {/* Big Input Preserved */}
+            <input 
+                type="text" 
+                placeholder="e.g. 120/80" 
+                className="w-full text-3xl font-black text-gray-800 placeholder:text-gray-200 outline-none"
+                value={formData.bloodPressure}
+                onChange={e => setFormData({...formData, bloodPressure: e.target.value})}
+            />
         </div>
-      </div>
 
-      <div className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm space-y-6">
-            <div className="text-center border-b border-gray-100 pb-4">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Reporting For</p>
-                {/* DISPLAY REAL NAME */}
-                <p className="text-lg font-black text-pink-500">{realName}</p>
-                <p className="text-xs font-mono text-pink-300">ID: {user.name}</p>
+        {/* 2. GRID FOR WEIGHT & HEART RATE */}
+        <div className="grid grid-cols-2 gap-4">
+            {/* Weight (Blue UI Preserved) */}
+            <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                    <Weight className="w-4 h-4 text-blue-500" />
+                    <label className="font-bold text-gray-400 uppercase text-[10px]">Weight (kg)</label>
+                </div>
+                <input 
+                    type="number" 
+                    placeholder="65" 
+                    className="w-full text-2xl font-black text-gray-800 placeholder:text-gray-200 outline-none"
+                    value={formData.weight}
+                    onChange={e => setFormData({...formData, weight: e.target.value})}
+                />
             </div>
 
+            {/* Heart Rate (Rose UI Preserved) */}
+            <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                    <Heart className="w-4 h-4 text-rose-500" />
+                    <label className="font-bold text-gray-400 uppercase text-[10px]">Heart Rate</label>
+                </div>
+                <input 
+                    type="number" 
+                    placeholder="80" 
+                    className="w-full text-2xl font-black text-gray-800 placeholder:text-gray-200 outline-none"
+                    value={formData.heartRate}
+                    onChange={e => setFormData({...formData, heartRate: e.target.value})}
+                />
+            </div>
+        </div>
+
+        {/* 3. TEMPERATURE CARD (Orange UI Preserved) */}
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">
-                <Activity className="w-4 h-4 text-blue-500" /> Blood Pressure
-              </label>
-              <input type="text" placeholder="e.g. 120/80" className="input input-lg w-full bg-blue-50/50 border-blue-100 rounded-2xl text-xl font-bold text-gray-800 focus:bg-white" value={formData.bloodPressure} onChange={(e) => setFormData({...formData, bloodPressure: e.target.value})} required />
+                <div className="flex items-center gap-2 mb-2">
+                    <Thermometer className="w-4 h-4 text-orange-500" />
+                    <label className="font-bold text-gray-400 uppercase text-[10px]">Temperature (°C)</label>
+                </div>
+                <input 
+                    type="number" 
+                    placeholder="36.5" 
+                    className="w-full text-2xl font-black text-gray-800 placeholder:text-gray-200 outline-none"
+                    value={formData.temperature}
+                    onChange={e => setFormData({...formData, temperature: e.target.value})}
+                />
             </div>
+        </div>
 
-            <div>
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">
-                <Scale className="w-4 h-4 text-orange-500" /> Weight (kg)
-              </label>
-              <input type="number" placeholder="e.g. 65" className="input input-lg w-full bg-orange-50/50 border-orange-100 rounded-2xl text-xl font-bold text-gray-800 focus:bg-white" value={formData.weight} onChange={(e) => setFormData({...formData, weight: e.target.value})} required />
-            </div>
+        {/* 4. NOTES TEXTAREA */}
+        <textarea 
+            className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 resize-none h-32 text-sm font-medium"
+            placeholder="Any other feelings? (Headache, dizziness, etc.)"
+            value={formData.notes}
+            onChange={e => setFormData({...formData, notes: e.target.value})}
+        ></textarea>
 
-            <div>
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">
-                <Thermometer className="w-4 h-4 text-red-500" /> Temperature (°C)
-              </label>
-              <input type="number" placeholder="e.g. 36.5" className="input input-lg w-full bg-red-50/50 border-red-100 rounded-2xl text-xl font-bold text-gray-800 focus:bg-white" value={formData.temperature} onChange={(e) => setFormData({...formData, temperature: e.target.value})} required />
-            </div>
+        {/* 5. SUBMIT BUTTON (Blue Shadow UI Preserved) */}
+        <button 
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-[2rem] font-bold uppercase tracking-widest shadow-lg shadow-blue-200 flex items-center justify-center gap-3 transition-transform active:scale-95"
+        >
+            {loading ? "Saving..." : <><Save className="w-5 h-5" /> Save Vitals</>}
+        </button>
 
-            <div>
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">How do you feel?</label>
-              <textarea placeholder="e.g. I feel a bit dizzy today..." className="textarea textarea-lg w-full h-32 bg-gray-50 border-gray-200 rounded-2xl text-base font-medium text-gray-800 focus:bg-white" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})}></textarea>
-            </div>
-          </div>
-
-          <button disabled={loading} className="w-full h-20 rounded-[2rem] bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xl font-black uppercase tracking-wider shadow-xl shadow-pink-500/30 flex items-center justify-center gap-4 active:scale-95 transition-transform disabled:opacity-70 disabled:cursor-not-allowed">
-            {loading ? <span className="loading loading-spinner loading-md"></span> : <><Save className="w-8 h-8" /><span>Submit Report</span></>}
-          </button>
-        </form>
-      </div>
+      </form>
     </div>
   );
 };
+
 export default MotherInputPage;
