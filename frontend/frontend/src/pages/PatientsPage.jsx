@@ -37,12 +37,13 @@ const PatientsPage = () => {
   const [appointDate, setAppointDate] = useState("");
   const [appointTime, setAppointTime] = useState("");
 
-  // FIXED: Added 'heartRate' to state
+  // STATE FOR CLINIC VISIT FORM
   const [clinicInput, setClinicInput] = useState({ bp: "", weight: "", temp: "", heartRate: "", notes: "" });
   const [showClinicForm, setShowClinicForm] = useState(false);
 
   useEffect(() => { fetchPatients(); }, []);
 
+  // --- 1. OPTIMIZED FETCH FUNCTION (FIXES LAG & DATA MIXING) ---
   const fetchPatients = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
@@ -51,19 +52,22 @@ const PatientsPage = () => {
       const sortedData = data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
       setAllLogs(sortedData);
 
+      // STRICT GROUPING BY PATIENT ID
       const logCounts = {};
       sortedData.forEach(log => {
-          const key = log.patientId || log.name;
-          logCounts[key] = (logCounts[key] || 0) + 1;
+          const key = log.patientId; // Key is ONLY the ID
+          if(key) logCounts[key] = (logCounts[key] || 0) + 1;
       });
 
       const uniqueMap = new Map();
       sortedData.forEach(item => {
-        const key = item.patientId || item.name; 
-        if(!uniqueMap.has(key)) {
+        const key = item.patientId; 
+        
+        // Only add if we haven't seen this ID before AND the ID exists
+        if(key && !uniqueMap.has(key)) {
           uniqueMap.set(key, {
             ...item,
-            totalLogs: logCounts[key] 
+            totalLogs: logCounts[key] || 0
           });
         }
       });
@@ -73,10 +77,11 @@ const PatientsPage = () => {
     } catch (error) { setLoading(false); }
   };
 
+  // --- 2. STRICT VIEW HANDLER (PREVENTS DATA MIXING) ---
   const handleViewPatient = (patient) => {
+    // Only match by ID. This prevents "Mother" = "Mother" mixing.
     const history = allLogs.filter(log => 
-      (patient.patientId && log.patientId === patient.patientId) || 
-      log.name === patient.name
+      patient.patientId && log.patientId === patient.patientId
     );
     setPatientHistory(history);
     setSelectedPatient(patient);
@@ -134,24 +139,23 @@ const PatientsPage = () => {
     }
   };
 
-  // --- HANDLE CLINIC SUBMIT (FIXED) ---
+  // --- 3. CLINIC SUBMIT (FIXED VALIDATION & MAPPING) ---
   const handleClinicSubmit = async (e) => {
     e.preventDefault();
     
-    // 1. Validation
+    // Validation
     const errors = validateVitals(clinicInput.bp, clinicInput.temp, clinicInput.weight, clinicInput.heartRate);
     if(errors.length > 0) {
         errors.forEach(err => toast.error(err));
         return;
     }
 
-    // 2. Prepare Payload (Mapping fields correctly)
+    // Mapping Inputs to Backend Field Names
     const payload = {
         name: selectedPatient.name, 
         patientId: selectedPatient.patientId, 
         pregnancyWeeks: selectedPatient.pregnancyWeeks,
         isSelfReport: false,
-        // Mapping Inputs to Backend Field Names
         bloodPressure: clinicInput.bp,
         temperature: clinicInput.temp,
         weight: clinicInput.weight,
@@ -280,6 +284,9 @@ const PatientsPage = () => {
                 ))}
                 </tbody>
             </table>
+            {filteredPatients.length === 0 && (
+                <div className="p-10 text-center text-gray-400 font-bold">No patients found.</div>
+            )}
             </div>
         </div>
       )}
@@ -354,7 +361,7 @@ const PatientsPage = () => {
                   )}
               </div>
 
-              {/* ... APPOINTMENT SECTION & HISTORY SECTION REMAIN SAME ... */}
+              {/* --- APPOINTMENT SECTION --- */}
               <div className="bg-blue-50 border-2 border-blue-100 p-5 rounded-2xl mb-8">
                 <h3 className="text-sm font-black text-blue-800 uppercase mb-4 flex gap-2"><Calendar className="w-5 h-5" /> Appointment</h3>
                 {selectedPatient.nextCheckup ? (

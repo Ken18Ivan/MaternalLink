@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Save, Activity, ArrowLeft, Thermometer, Heart, Weight, Calendar } from "lucide-react";
@@ -10,9 +10,11 @@ const MotherInputPage = () => {
   const { user, token } = useAuth();
   const [loading, setLoading] = useState(false);
   
-  // 1. ADDED pregnancyWeeks to state
+  // --- FIX 1: Add State for Real Name ---
+  const [realName, setRealName] = useState("Mother"); 
+
   const [formData, setFormData] = useState({
-    pregnancyWeeks: "", // <--- FIXED: Added this
+    pregnancyWeeks: "",
     bloodPressure: "",
     weight: "",
     temperature: "",
@@ -20,10 +22,30 @@ const MotherInputPage = () => {
     notes: ""
   });
 
+  // --- FIX 2: Fetch the Real Name on Load ---
+  useEffect(() => {
+    const fetchPatientName = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/patients`);
+        // Find the record that matches the logged-in user's ID
+        const myRecord = res.data.find(r => r.patientId === user.name);
+        
+        if (myRecord && myRecord.name) {
+          setRealName(myRecord.name); // Set the correct name (e.g., "Maria")
+        }
+      } catch (err) {
+        console.error("Could not fetch name:", err);
+      }
+    };
+
+    if (user && user.name) {
+      fetchPatientName();
+    }
+  }, [user]);
+
   const validateInputs = () => {
     const { bloodPressure, weight, temperature, heartRate, pregnancyWeeks } = formData;
 
-    // 2. ADDED Validation for Weeks
     if (!pregnancyWeeks) {
         toast.error("Please enter Pregnancy Weeks");
         return false;
@@ -56,8 +78,8 @@ const MotherInputPage = () => {
     try {
       const payload = {
         patientId: user.name, 
-        name: user.realName || "Mother", 
-        // 3. ADDED pregnancyWeeks to payload (This fixes the error)
+        // --- FIX 3: Use the fetched realName ---
+        name: realName, 
         pregnancyWeeks: Number(formData.pregnancyWeeks), 
         bloodPressure: formData.bloodPressure,
         weight: Number(formData.weight),
@@ -72,7 +94,7 @@ const MotherInputPage = () => {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/patients`, payload, config);
 
       toast.success("Vitals Saved Successfully!");
-      navigate("/mother");
+      navigate("/mother/dashboard"); 
 
     } catch (error) {
       console.error(error);
@@ -96,7 +118,7 @@ const MotherInputPage = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* --- NEW: PREGNANCY WEEKS CARD --- */}
+        {/* PREGNANCY WEEKS CARD */}
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-4">
                 <div className="bg-pink-100 p-2 rounded-full">
